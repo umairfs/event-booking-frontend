@@ -1,37 +1,44 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import api from "../api/axios";
 import { formatDateTime } from "../utils/formatDate";
 
 const UserBookings = () => {
-  const { userId } = useParams();   // 🔥 get from route
+  const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchBookings();
-  }, [userId]);
+  }, []);
 
   const fetchBookings = async () => {
     try {
-      const res = await axios.get(
-        `http://localhost:5000/api/users/${userId}/bookings`
-      );
+      const res = await api.get("/bookings/my");
       setBookings(res.data.data);
     } catch (error) {
       console.error("Error fetching bookings", error);
+
+      // If unauthorized → redirect to login
+      if (error.response?.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/login");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleCancel = async (bookingId) => {
     try {
-      await axios.post(
-        `http://localhost:5000/api/bookings/${bookingId}/cancel`
-      );
-      fetchBookings(); // refresh
+      await api.post(`/bookings/${bookingId}/cancel`);
+      fetchBookings(); // refresh after cancel
     } catch (error) {
       console.error("Error cancelling booking", error);
     }
   };
+
+  if (loading) return <p>Loading...</p>;
 
   return (
     <div>
@@ -41,9 +48,18 @@ const UserBookings = () => {
         <p>No bookings found</p>
       ) : (
         bookings.map((booking) => (
-          <div key={booking.bookingId} style={{ border: "1px solid #ccc", padding: 10, margin: 10 }}>
-            <h3>{booking.eventName}</h3>
+          <div
+            key={booking.bookingId}
+            style={{
+              border: "1px solid #ccc",
+              padding: 10,
+              margin: 10
+            }}
+          >
+            <h3>{booking.name}</h3>
+            <p>Desc: {booking.eventDescription}</p>
             <p>Date: {formatDateTime(booking.eventDate)}</p>
+            <p>Booking Date: {formatDateTime(booking.createdAt)}</p>
             <p>Status: {booking.status}</p>
 
             {booking.status === "CONFIRMED" && (

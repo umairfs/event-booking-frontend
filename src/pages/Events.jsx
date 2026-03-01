@@ -27,9 +27,7 @@ function Events() {
 
   const bookEvent = async (eventId) => {
     try {
-      await api.post(`/bookings/events/${eventId}/book`, {
-        userId: 101
-      });
+      await api.post(`/bookings/events/${eventId}/book`);
       alert("Booking successful!");
       fetchEvents();
     } catch (err) {
